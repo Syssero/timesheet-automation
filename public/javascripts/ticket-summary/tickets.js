@@ -52,9 +52,9 @@ const ticketSummary = async (req, res) => {
     let groupedConversations = {};
 
     const FRESHDESK_BASE_URL = 'https://syssero.freshdesk.com/api';
-    const FRESHDESK_API_KEY = '7X7LVMNBCxZZDz4DXyQN';
+    const FRESHDESK_API_KEY = req.query.fdKey;
     const AZURE_OPENAI_URL = 'https://freshdesk-comments-summary.openai.azure.com/openai/deployments/gpt-35-turbo-4k/chat/completions?api-version=2023-05-15';
-    const AZURE_OPENAI_API_KEY = '58fc8058363744c1b42cc078d0fb3d6a';
+    const AZURE_OPENAI_API_KEY = req.query.aoaiKey;
     const PER_PAGE = 100; // Maximum allowed by Freshdesk API
     let apiCallsCount = 0; // Counter for API calls
 
