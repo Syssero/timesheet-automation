@@ -235,7 +235,7 @@ const ticketSummary = async (req: any, res: { json: (arg0: {}[]) => void; }) => 
                 companyArray = userMap.get(agentKey).companies;
 
                 if(companyArray != null && companyArray.length > 0) {
-
+                    
                 }
 
                 /*if (!groupedConversations[agentKey]) {

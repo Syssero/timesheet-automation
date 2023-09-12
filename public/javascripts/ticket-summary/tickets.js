@@ -1,34 +1,11 @@
 //import axios from "axios";
 const axios = require('axios');
 const { string } = require('joi');
-/*const Joi = require('joi');
-
-const user = Joi.object([{
-    user: [{
-        user_email: Joi.string().email,
-        companies: [{
-            company: Joi.string(),
-            tickets: [{
-                ticket: Joi.string(),
-                comments: [{
-                    body_text: Joi.string(),
-                    user_id: Joi.string(),
-                    user_is_agent: Joi.string(),
-                    user_email: Joi.string(),
-                    updated_at: Joi.string(),
-                    ai_summary: Joi.string()
-                }]
-            }]
-        }]
-    }]
-}])*/
 
 const ticketSummary = async (req, res) => {
-    console.log('ticketSummary function called')
     var date = new Date();
     date.setDate(date.getDate() - 1);
     date = date.toISOString().slice(0, 10);
-    console.log(`date: ${date}`);
     /* let groupedConversations = [{
          user: [{
              user_email: string,
@@ -109,6 +86,11 @@ const ticketSummary = async (req, res) => {
         {}
     );
 
+    const agentNameMap = agents.reduce(
+        (map, agent) => ({ ...map, [agent.contact.email]: agent.contact.name }),
+        {}
+    );
+
     // Fetch tickets updated since the provided date
     const tickets = await fetchPaginatedData(
         `${FRESHDESK_BASE_URL}/v2/tickets`,
@@ -120,11 +102,7 @@ const ticketSummary = async (req, res) => {
             `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
         );
 
-        console.log(`ticket id: ${ticket.id}`);
-
         ticket.company_name = companyMap[ticket.company_id] || "N/A";
-
-        console.log(`ticket company name: ${ticket.company_name}`);
 
         let phrases = [
             "thanks",
@@ -159,7 +137,6 @@ const ticketSummary = async (req, res) => {
         let regex_default = new RegExp(`${pattern_default}`, "gi");
 
         for (const agent of agents) {
-            //console.log(`agent id: ${agent.id}`)
             // Add conversations to the ticket, filtering out conversations not updated since the provided date
             ticket.conversations = conversations
                 .filter(
@@ -171,7 +148,6 @@ const ticketSummary = async (req, res) => {
                     // Remove the undesired phrases from the body_text
                     let cleanedBodyText = conversation.body_text.replace(regex, "");
                     cleanedBodyText = cleanedBodyText.replace(regex_default, "");
-                    console.log(`cleaned body text: ${cleanedBodyText}`)
                     return {
                         body_text: cleanedBodyText,
                         user_id: conversation.user_id,
@@ -180,8 +156,6 @@ const ticketSummary = async (req, res) => {
                         updated_at: conversation.updated_at,
                     };
                 });
-
-            //console.log(`ticket conversations: ${ticket.conversations}`)
 
             // Check if there are any conversations left for this ticket after filtering
             // If not, skip to the next ticket
@@ -212,7 +186,6 @@ const ticketSummary = async (req, res) => {
                 groupedConversationsByDate[
                     dateKey
                 ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
-                console.log(`body text: ${conversation.body_text}`);
             }
 
             // Convert the groupedConversationsByDate object into an array
@@ -220,7 +193,6 @@ const ticketSummary = async (req, res) => {
 
             // Request to OpenAI's Chat Model API
             for (let conversation of ticket.conversations) {
-                console.log(`conversation: ${conversation}`);
                 const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 500 characters (counting spaces) and you should give a narative. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text}`;
                 const response = await axios.post(
                     `${AZURE_OPENAI_URL}`,
@@ -250,16 +222,7 @@ const ticketSummary = async (req, res) => {
                 const companyKey = ticket.company_name;
                 const ticketKey = ticket.id.toString();
                 const agentKey = agentMap[conversation.user_id];
-                console.log(`agentKey: ${agentKey}`)
 
-                /*if(!groupedConversations.user || groupedConversations.user.user_email != agentKey) {
-                    groupedConversations.user = {
-                        user_email: agentKey    
-                    }
-                } else {
-                    //groupedConversations.user = 
-                }
-                console.log(`user email: ${groupedConversations.user.user_email}`)*/
                 if (!groupedConversations[agentKey]) {
                     groupedConversations[agentKey] = {};
                 }
@@ -292,8 +255,10 @@ const ticketSummary = async (req, res) => {
                 tickets
             };
         });
+        const user_name = agentNameMap[user_email];
         return {
             user_email,
+            user_name,
             companies
         };
     });
@@ -301,9 +266,7 @@ const ticketSummary = async (req, res) => {
     console.log(transformedData);
 
     console.log(`Total API calls made: ${apiCallsCount}`); // Log the number of API calls made
-    console.log(`groupedConversations: ${groupedConversations}`);
     res.json(transformedData);
-    console.log(`respose: ${res}`)
     return res;
 };
 
