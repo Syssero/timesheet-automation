@@ -131,6 +131,14 @@ const ticketSummary = async (req, res) => {
             "Please let us know if you have any questions.  Thank You!  Syssero Support Solutions",
             "https://support.syssero.com/helpdesk/tickets/"
         ]
+
+        let summary_defaults = [
+            "Reviwed",
+            "Reviewed and responded",
+            "Reviewed with",
+            "Closed"
+        ]
+
         let pattern = phrases
             .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
             .join("|");
@@ -138,8 +146,14 @@ const ticketSummary = async (req, res) => {
         let pattern_default = default_messages
             .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
             .join("|");
+
+        let pattern_summary_default = summary_defaults
+            .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
+            .join("|");
+
         let regex = new RegExp(`\\s*(?:${pattern})[\\s\\S]*`, "im");
         let regex_default = new RegExp(`${pattern_default}`, "gi");
+        let regex_summary = new RegExp(`\\s*(?:${pattern_summary_default})[\\s\\S]*`, "im");
 
         for (const agent of agents) {
             // Add conversations to the ticket, filtering out conversations not updated since the provided date
@@ -198,7 +212,7 @@ const ticketSummary = async (req, res) => {
 
             // Request to OpenAI's Chat Model API
             for (let conversation of ticket.conversations) {
-                const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 300 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
+                const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
                 const response = await axios.post(
                     `${AZURE_OPENAI_URL}`,
                     {
