@@ -97,13 +97,18 @@ const ticketSummary = async (req, res) => {
         { updated_since: date }
     );
 
+    const ticketSubjectMap = tickets.reduce(
+        (map, ticket) => ({ ...map, [ticket.id]: ticket.subject }),
+        {}
+    );
+
     for (const ticket of tickets) {
         const conversations = await fetchPaginatedData(
             `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
         );
 
         ticket.company_name = companyMap[ticket.company_id] || "N/A";
-
+        
         let phrases = [
             "thanks",
             "best regards",
@@ -193,7 +198,7 @@ const ticketSummary = async (req, res) => {
 
             // Request to OpenAI's Chat Model API
             for (let conversation of ticket.conversations) {
-                const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 500 characters (counting spaces) and you should give a narative. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text}`;
+                const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 300 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
                 const response = await axios.post(
                     `${AZURE_OPENAI_URL}`,
                     {
@@ -245,8 +250,10 @@ const ticketSummary = async (req, res) => {
             const tickets = Object.entries(ticketsData).map(([ticket, ticketDetails]) => {
                 // Assuming there's only one summary per ticket for simplicity
                 const summary = ticketDetails;
+                const subject = ticketSubjectMap[ticket];
                 return {
                     ticket,
+                    subject,
                     summary
                 };
             });
