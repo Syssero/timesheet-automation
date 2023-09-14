@@ -212,7 +212,7 @@ const ticketSummary = async (req, res) => {
 
             // Request to OpenAI's Chat Model API
             for (let conversation of ticket.conversations) {
-                const prompt = `You are a consultant reviewing your notes and messages to your clients. You need to use this information to write what you did during that day so your client can approve your time. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
+                const prompt = `You are a consultant reviewing your replies to your tickets. You need to use this information to write what you did on the ticket. You do not need to mention the ticket number in the summary. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
                 const response = await axios.post(
                     `${AZURE_OPENAI_URL}`,
                     {
