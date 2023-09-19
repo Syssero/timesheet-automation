@@ -1,30 +1,16 @@
 //import axios from "axios";
 const axios = require('axios');
 const { string } = require('joi');
+const moment = require('moment');
 
 const ticketSummary = async (req, res) => {
-    var date = new Date();
-    date.setDate(date.getDate() - 1);
-    date = date.toISOString().slice(0, 10);
-    /* let groupedConversations = [{
-         user: [{
-             user_email: string,
-             companies: [{
-                 company: string,
-                 tickets: [{
-                     ticket: string,
-                     comments: [{
-                         body_text: string,
-                         user_id: string,
-                         user_is_agent: string,
-                         user_email: string,
-                         updated_at: string,
-                         ai_summary: string
-                     }]
-                 }]
-             }]
-         }]
-     }];*/
+    var ticketDate = new Date();
+    ticketDate.setDate(ticketDate.getDate() - 2);
+    ticketDate = ticketDate.toISOString().slice(0, 10);
+
+    var conversationDate = new Date();
+    conversationDate.setDate(conversationDate.getDate() - 1);
+    conversationDate = conversationDate.toISOString().slice(0, 10);
 
     let groupedConversations = {};
 
@@ -94,7 +80,7 @@ const ticketSummary = async (req, res) => {
     // Fetch tickets updated since the provided date
     const tickets = await fetchPaginatedData(
         `${FRESHDESK_BASE_URL}/v2/tickets`,
-        { updated_since: date }
+        { updated_since: ticketDate }
     );
 
     const ticketSubjectMap = tickets.reduce(
@@ -160,8 +146,9 @@ const ticketSummary = async (req, res) => {
             ticket.conversations = conversations
                 .filter(
                     (conversation) =>
-                        new Date(conversation.updated_at).toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10) &&
-                        conversation.user_id === agent.id
+                        new Date(conversation.updated_at).toISOString().slice(0, 10) === conversationDate &&
+                        conversation.user_id === agent.id &&
+                        conversation.private === false
                 )
                 .map((conversation) => {
                     // Remove the undesired phrases from the body_text
@@ -204,7 +191,7 @@ const ticketSummary = async (req, res) => {
                 // Append the new conversation to the existing conversations for that date
                 groupedConversationsByDate[
                     dateKey
-                ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
+                ].body_text += `message at ${moment(conversation.updated_at).format('YYYY-MM-DD HH:mm:ss')}: ${conversation.body_text}\n`;
             }
 
             // Convert the groupedConversationsByDate object into an array
