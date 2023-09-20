@@ -1,7 +1,7 @@
 //import axios from "axios";
 const axios = require('axios');
 const { string } = require('joi');
-const moment = require('moment');
+//const moment = require('moment');
 
 const ticketSummary = async (req, res) => {
     var ticketDate = new Date();
@@ -139,7 +139,6 @@ const ticketSummary = async (req, res) => {
 
         let regex = new RegExp(`\\s*(?:${pattern})[\\s\\S]*`, "im");
         let regex_default = new RegExp(`${pattern_default}`, "gi");
-        let regex_summary = new RegExp(`\\s*(?:${pattern_summary_default})[\\s\\S]*`, "im");
 
         for (const agent of agents) {
             // Add conversations to the ticket, filtering out conversations not updated since the provided date
@@ -191,7 +190,7 @@ const ticketSummary = async (req, res) => {
                 // Append the new conversation to the existing conversations for that date
                 groupedConversationsByDate[
                     dateKey
-                ].body_text += `message at ${moment(conversation.updated_at).format('YYYY-MM-DD HH:mm:ss')}: ${conversation.body_text}\n`;
+                ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
             }
 
             // Convert the groupedConversationsByDate object into an array
@@ -220,7 +219,6 @@ const ticketSummary = async (req, res) => {
                 );
 
                 conversation.ai_summary = response.data.choices[0].message.content;
-                console.log(`summary: ${conversation.ai_summary}`);
             }
 
             // Group the conversations by date, then by company, then by ticket number
