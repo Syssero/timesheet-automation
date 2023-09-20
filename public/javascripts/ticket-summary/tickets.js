@@ -220,6 +220,7 @@ const ticketSummary = async (req, res) => {
                 );
 
                 conversation.ai_summary = response.data.choices[0].message.content;
+                console.log(`summary: ${conversation.ai_summary}`);
             }
 
             // Group the conversations by date, then by company, then by ticket number
