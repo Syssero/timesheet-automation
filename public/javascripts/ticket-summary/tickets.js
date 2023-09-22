@@ -18,6 +18,8 @@ const ticketSummary = async (req, res) => {
     const FRESHDESK_API_KEY = req.query.fdKey;
     const AZURE_OPENAI_URL = 'https://freshdesk-comments-summary.openai.azure.com/openai/deployments/gpt-35-turbo-4k/chat/completions?api-version=2023-05-15';
     const AZURE_OPENAI_API_KEY = req.query.aoaiKey;
+    const agentList = req.query.agents;
+    const agentArr = agentList.split(",");
     const PER_PAGE = 100; // Maximum allowed by Freshdesk API
     let apiCallsCount = 0; // Counter for API calls
 
@@ -54,6 +56,28 @@ const ticketSummary = async (req, res) => {
         return aggregatedData;
     };
 
+    // Function to fetch paginated data
+    const fetchAgentData = async (url, params = {}) => {
+        let aggregatedData = [];
+        for(const agent of agentArr) {
+            const response = await axios.get(
+                `${FRESHDESK_BASE_URL}/v2/agents?email=${agent}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Basic ${Buffer.from(`${FRESHDESK_API_KEY}:X`).toString(
+                            "base64"
+                        )}`,
+                    },
+                    params,
+                }
+            );
+            aggregatedData = [...aggregatedData, ...response.data];
+        }
+
+        return aggregatedData;
+    };
+
     // Fetch all companies
     const companies = await fetchPaginatedData(
         `${FRESHDESK_BASE_URL}/v2/companies`
@@ -63,10 +87,8 @@ const ticketSummary = async (req, res) => {
         {}
     );
 
-    // Fetch all agents
-    const agents = await fetchPaginatedData(
-        `${FRESHDESK_BASE_URL}/v2/agents`
-    );
+    // Fetch agents info
+    const agents = await fetchAgentData();
     const agentMap = agents.reduce(
         (map, agent) => ({ ...map, [agent.id]: agent.contact.email }),
         {}
