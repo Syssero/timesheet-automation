@@ -169,7 +169,8 @@ const ticketSummary = async (req, res) => {
                     (conversation) =>
                         new Date(conversation.updated_at).toISOString().slice(0, 10) === conversationDate &&
                         conversation.user_id === agent.id &&
-                        conversation.private === false
+                        (conversation.private === false || (conversation.private === true && 
+                            conversation.body_text.toUpperCase().includes('TIME NOTES')))
                 )
                 .map((conversation) => {
                     // Remove the undesired phrases from the body_text
