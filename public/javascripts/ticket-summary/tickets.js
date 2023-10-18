@@ -10,7 +10,7 @@ const ticketSummary = async (req, res) => {
 
     var conversationDate = new Date();
     conversationDate.setDate(conversationDate.getDate() - 1);
-    conversationDate = conversationDate.toISOString().slice(0, 10);
+    conversationDate = conversationDate.toLocaleString("en-US", {timeZone: "America/New_York"}).slice(0, 10);
 
     let groupedConversations = {};
 
@@ -84,6 +84,10 @@ const ticketSummary = async (req, res) => {
     );
     const companyMap = companies.reduce(
         (map, company) => ({ ...map, [company.id]: company.name }),
+        {}
+    );
+    const companyDomainMap = companies.reduce(
+        (map, company) => ({ ...map, [company.id]: company.domains }),
         {}
     );
 
@@ -167,7 +171,7 @@ const ticketSummary = async (req, res) => {
             ticket.conversations = conversations
                 .filter(
                     (conversation) =>
-                        new Date(conversation.updated_at).toISOString().slice(0, 10) === conversationDate &&
+                        new Date(conversation.updated_at).toLocaleString("en-US", {timeZone: "America/New_York"}).slice(0, 10) === conversationDate &&
                         conversation.user_id === agent.id &&
                         (conversation.private === false || (conversation.private === true && 
                             conversation.body_text.toUpperCase().includes('TIME NOTES')))
