@@ -86,10 +86,10 @@ const ticketSummary = async (req, res) => {
         (map, company) => ({ ...map, [company.id]: company.name }),
         {}
     );
-    const companyDomainMap = companies.reduce(
+    /*const companyDomainMap = companies.reduce(
         (map, company) => ({ ...map, [company.id]: company.domains }),
         {}
-    );
+    );*/
 
     // Fetch agents info
     const agents = await fetchAgentData();
