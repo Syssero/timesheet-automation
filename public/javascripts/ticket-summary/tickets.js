@@ -173,8 +173,9 @@ const axios = require('axios');
                         (conversation) =>
                             new Date(conversation.updated_at).toLocaleString("en-US", {timeZone: "America/New_York"}).slice(0, 10) === conversationDate &&
                             conversation.user_id === agent.id &&
-                            (conversation.private === false || (conversation.private === true && 
-                                conversation.body_text.toUpperCase().includes('TIME NOTES')))
+                            ((conversation.private === false && conversation.incoming === false) 
+                                || (conversation.private === true && 
+                                    conversation.body_text.toUpperCase().includes('TIME NOTES')))
                     )
                     .map((conversation) => {
                         // Remove the undesired phrases from the body_text
@@ -222,10 +223,11 @@ const axios = require('axios');
 
                 // Convert the groupedConversationsByDate object into an array
                 ticket.conversations = Object.values(groupedConversationsByDate);
-
+                //console.log(`Ticket Number: ${ticket.id}`);
                 // Request to OpenAI's Chat Model API
                 for (let conversation of ticket.conversations) {
                     const prompt = `You are a consultant reviewing your replies to your tickets. You need to use this information to write what you did on the ticket. You do not need to mention the ticket number in the summary. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text} ${conversation.body_text}`;
+                    //console.log(`Prompt message: ${prompt}`);
                     const response = await axios.post(
                         `${AZURE_OPENAI_URL}`,
                         {
