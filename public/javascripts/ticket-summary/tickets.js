@@ -215,13 +215,13 @@ const ticketSummary = async (req, res) => {
                 }
 
                 // Append the new conversation to the existing conversations for that date
-                console.log(`conversation.body_text: ${conversation.body_text}`);
+                //console.log(`conversation.body_text: ${conversation.body_text}`);
                 groupedConversationsByDate[
                     dateKey
                 ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
             }
 
-            console.log(`groupedConversationsByDate: ${groupedConversationsByDate}`);
+            //console.log(`groupedConversationsByDate: ${groupedConversationsByDate}`);
             // Convert the groupedConversationsByDate object into an array
             ticket.conversations = Object.values(groupedConversationsByDate);
             //console.log(`Ticket Number: ${ticket.id}`);
