@@ -248,6 +248,7 @@ const ticketSummary = async (req, res) => {
                     }
                 );
 
+                //Add AI Summary
                 conversation.ai_summary = response.data.choices[0].message.content;
             }
 
