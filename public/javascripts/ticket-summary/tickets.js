@@ -115,165 +115,173 @@ const ticketSummary = async (req, res) => {
     );
 
     for (const ticket of tickets) {
-        const conversations = await fetchPaginatedData(
-            `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
-        );
+        //console.log(`ticket subject: ${ticket.subject}`)
+        if (!ticket.subject.includes('Case') && !ticket.subject.includes('has been created')) {
+            const conversations = await fetchPaginatedData(
+                `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
+            );
 
-        ticket.company_name = companyMap[ticket.company_id] || "N/A";
+            ticket.company_name = companyMap[ticket.company_id] || "N/A";
 
-        let phrases = [
-            "thanks for your",
-            "best regards",
-            "happy Monday",
-            "happy Friday",
-            "cheers",
-            "thank you!",
-            "have a great",
-            "have a good",
-            "enjoy your",
-            "no worries",
-            "good morning",
-            "good day"
-        ];
+            let phrases = [
+                "thanks for your",
+                "best regards",
+                "happy Monday",
+                "happy Friday",
+                "cheers",
+                "thank you!",
+                "have a great",
+                "have a good",
+                "enjoy your",
+                "no worries",
+                "good morning",
+                "good day"
+            ];
 
-        let default_messages = [
-            "please see the comments below.",
-            "please see the comments above.",
-            "Any comments or status updates to the ticket will be accessible via the Syssero AMS Customer Portal.",
-            "Please let us know if you have any questions.  Thank You!  Syssero Support Solutions",
-            "https://support.syssero.com/helpdesk/tickets/"
-        ]
+            let default_messages = [
+                "please see the comments below.",
+                "please see the comments above.",
+                "Any comments or status updates to the ticket will be accessible via the Syssero AMS Customer Portal.",
+                "Please let us know if you have any questions.  Thank You!  Syssero Support Solutions",
+                "https://support.syssero.com/helpdesk/tickets/"
+            ]
 
-        let summary_defaults = [
-            "Reviwed",
-            "Reviewed and responded",
-            "Reviewed with",
-            "Closed"
-        ]
+            let summary_defaults = [
+                "Reviwed",
+                "Reviewed and responded",
+                "Reviewed with",
+                "Closed"
+            ]
 
-        let pattern = phrases
-            .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
-            .join("|");
+            let pattern = phrases
+                .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
+                .join("|");
 
-        let pattern_default = default_messages
-            .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
-            .join("|");
+            let pattern_default = default_messages
+                .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
+                .join("|");
 
-        let pattern_summary_default = summary_defaults
-            .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
-            .join("|");
+            let pattern_summary_default = summary_defaults
+                .map((phrase) => phrase.replace(/[.*+\-?^${}()|[\]\\]/g, "\\$&"))
+                .join("|");
 
-        let regex = new RegExp(`\\s*(?:${pattern})[\\s\\S]*`, "im");
-        let regex_default = new RegExp(`${pattern_default}`, "gi");
+            let regex = new RegExp(`\\s*(?:${pattern})[\\s\\S]*`, "im");
+            let regex_default = new RegExp(`${pattern_default}`, "gi");
 
-        for (const agent of agents) {
-            // Add conversations to the ticket, filtering out conversations not updated since the provided date
-            ticket.conversations = conversations
-                .filter(
-                    (conversation) =>
-                        new Date(conversation.updated_at).toLocaleString("en-US", { timeZone: "America/New_York" }).slice(0, 10) === conversationDate &&
-                        conversation.user_id === agent.id &&
-                        ((conversation.private === false && conversation.incoming === false)
-                            || (conversation.private === true &&
-                                conversation.body_text.toUpperCase().includes('TIME NOTES')))
-                )
-                .map((conversation) => {
-                    // Remove the undesired phrases from the body_text
-                    let cleanedBodyText = conversation.body_text.replace(regex, "");
-                    cleanedBodyText = cleanedBodyText.replace(regex_default, "");
-                    return {
-                        body_text: cleanedBodyText,
-                        user_id: conversation.user_id,
-                        user_is_agent: !!agentMap[conversation.user_id],
-                        user_email: agentMap[conversation.user_id] || "N/A",
-                        updated_at: conversation.updated_at,
-                    };
-                });
+            for (const agent of agents) {
+                // Add conversations to the ticket, filtering out conversations not updated since the provided date
+                ticket.conversations = conversations
+                    .filter(
+                        (conversation) =>
+                            new Date(conversation.updated_at).toLocaleString("en-US", { timeZone: "America/New_York" }).slice(0, 10) === conversationDate &&
+                            conversation.user_id === agent.id &&
+                            ((conversation.private === false && conversation.incoming === false)
+                                || (conversation.private === true &&
+                                    conversation.body_text.toUpperCase().includes('TIME NOTES')))
+                    )
+                    .map((conversation) => {
+                        // Remove the undesired phrases from the body_text
+                        let cleanedBodyText = conversation.body_text.replace(regex, "");
+                        cleanedBodyText = cleanedBodyText.replace(regex_default, "");
+                        return {
+                            body_text: cleanedBodyText,
+                            user_id: conversation.user_id,
+                            user_is_agent: !!agentMap[conversation.user_id],
+                            user_email: agentMap[conversation.user_id] || "N/A",
+                            updated_at: conversation.updated_at,
+                        };
+                    });
 
-            // Check if there are any conversations left for this ticket after filtering
-            // If not, skip to the next ticket
-            if (ticket.conversations.length === 0) {
-                continue;
-            }
-
-            // Group conversations by date and combine the body_text
-            let groupedConversationsByDate = {};
-
-            for (let conversation of ticket.conversations) {
-                let dateKey = new Date(conversation.updated_at)
-                    .toLocaleString("en-US", { timeZone: "America/New_York" }).slice(0, 10); // Extract just the date part
-
-                // If the date key doesn't exist in the map, create it
-                if (!groupedConversationsByDate[dateKey]) {
-                    groupedConversationsByDate[dateKey] = {
-                        body_text: "",
-                        user_id: conversation.user_id,
-                        user_is_agent: conversation.user_is_agent,
-                        user_email: conversation.user_email,
-                        updated_at: dateKey,
-                    };
+                // Check if there are any conversations left for this ticket after filtering
+                // If not, skip to the next ticket
+                if (ticket.conversations.length === 0) {
+                    continue;
                 }
 
-                // Append the new conversation to the existing conversations for that date
-                //console.log(`conversation.body_text: ${conversation.body_text}`);
-                groupedConversationsByDate[
-                    dateKey
-                ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
-            }
+                // Group conversations by date and combine the body_text
+                let groupedConversationsByDate = {};
 
-            //console.log(`groupedConversationsByDate: ${groupedConversationsByDate}`);
-            // Convert the groupedConversationsByDate object into an array
-            ticket.conversations = Object.values(groupedConversationsByDate);
-            //console.log(`Ticket Number: ${ticket.id}`);
-            // Request to OpenAI's Chat Model API
-            for (let conversation of ticket.conversations) {
-                const prompt = `You are a consultant reviewing your replies to your tickets. You need to use this information to write what you did on the ticket. You can ignore the niceties. You do not need to mention the ticket number in the summary. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text}`;
-                console.log(`Prompt message: ${prompt}`);
-                const response = await axios.post(
-                    `${AZURE_OPENAI_URL}`,
-                    {
-                        messages: [
-                            {
-                                role: "user",
-                                content: prompt,
-                            },
-                        ],
-                        temperature: 0.3,
-                    },
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                            "api-key": `${AZURE_OPENAI_API_KEY}`,
-                        },
+                //console.log(`ticket conversations ${ticket.conversations}`);
+                if (ticket.conversations && ticket.conversations.length > 0) {
+                    for (let conversation of ticket.conversations) {
+                        //console.log(`conversation ${conversation}`)
+                        let dateKey = new Date(conversation.updated_at)
+                            .toLocaleString("en-US", { timeZone: "America/New_York" }).slice(0, 10); // Extract just the date part
+
+                        // If the date key doesn't exist in the map, create it
+                        if (!groupedConversationsByDate[dateKey]) {
+                            groupedConversationsByDate[dateKey] = {
+                                body_text: "",
+                                user_id: conversation.user_id,
+                                user_is_agent: conversation.user_is_agent,
+                                user_email: conversation.user_email,
+                                updated_at: dateKey,
+                            };
+                        }
+
+                        // Append the new conversation to the existing conversations for that date
+                        //console.log(`conversation.body_text: ${conversation.body_text}`);
+                        groupedConversationsByDate[
+                            dateKey
+                        ].body_text += `message at ${conversation.updated_at}: ${conversation.body_text}\n`;
                     }
-                );
 
-                //Add AI Summary
-                conversation.ai_summary = response.data.choices[0].message.content;
-            }
+                    //console.log(`groupedConversationsByDate: ${groupedConversationsByDate}`);
+                    // Convert the groupedConversationsByDate object into an array
+                    ticket.conversations = Object.values(groupedConversationsByDate);
+                    //console.log(`Ticket Number: ${ticket.id}`);
+                    // Request to OpenAI's Chat Model API
+                    for (let conversation of ticket.conversations) {
+                        const prompt = `You are a consultant reviewing your replies to your tickets. You need to use this information to write what you did on the ticket. You can ignore the niceties. You do not need to mention the ticket number in the summary. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text}`;
+                        console.log(`Prompt message: ${prompt}`);
+                        const response = await axios.post(
+                            `${AZURE_OPENAI_URL}`,
+                            {
+                                messages: [
+                                    {
+                                        role: "user",
+                                        content: prompt,
+                                    },
+                                ],
+                                temperature: 0.3,
+                            },
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "api-key": `${AZURE_OPENAI_API_KEY}`,
+                                },
+                            }
+                        );
 
-            // Group the conversations by date, then by company, then by ticket number
-            for (let conversation of ticket.conversations) {
-                //const dateKey = conversation.updated_at; // Extract the date part
-                const companyKey = ticket.company_name;
-                const ticketKey = ticket.id.toString();
-                const agentKey = agentMap[conversation.user_id];
+                        //Add AI Summary
+                        conversation.ai_summary = response.data.choices[0].message.content;
+                    }
 
-                if (!groupedConversations[agentKey]) {
-                    groupedConversations[agentKey] = {};
+                    // Group the conversations by date, then by company, then by ticket number
+                    for (let conversation of ticket.conversations) {
+                        //const dateKey = conversation.updated_at; // Extract the date part
+                        const companyKey = ticket.company_name;
+                        const ticketKey = ticket.id.toString();
+                        const agentKey = agentMap[conversation.user_id];
+
+                        if (!groupedConversations[agentKey]) {
+                            groupedConversations[agentKey] = {};
+                        }
+                        if (!groupedConversations[agentKey][companyKey]) {
+                            groupedConversations[agentKey][companyKey] = {};
+                        }
+                        if (!groupedConversations[agentKey][companyKey][ticketKey]) {
+                            groupedConversations[agentKey][companyKey][ticketKey] = {};
+                        }
+                        groupedConversations[agentKey][companyKey][ticketKey] = conversation;
+                    }
                 }
-                if (!groupedConversations[agentKey][companyKey]) {
-                    groupedConversations[agentKey][companyKey] = {};
-                }
-                if (!groupedConversations[agentKey][companyKey][ticketKey]) {
-                    groupedConversations[agentKey][companyKey][ticketKey] = {};
-                }
-                groupedConversations[agentKey][companyKey][ticketKey] = conversation;
             }
         }
     }
 
     const inputData = groupedConversations; // Your original JSON output
+    console.log(`grouped conversation: ${groupedConversations}`);
 
     const transformedData = Object.entries(inputData).map(([user_email, companiesData]) => {
         const companies = Object.entries(companiesData).map(([company_name, ticketsData]) => {
