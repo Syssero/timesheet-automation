@@ -115,8 +115,8 @@ const ticketSummary = async (req, res) => {
     );
 
     for (const ticket of tickets) {
-        //console.log(`ticket number: ${ticket.id}`);
-        //console.log(`ticket subject: ${ticket.subject}`)
+        console.log(`ticket number: ${ticket.id}`);
+        console.log(`ticket subject: ${ticket.subject}`)
         //if (!ticket.subject.includes('Case') && !ticket.subject.includes('has been created')) {
         const conversations = await fetchPaginatedData(
             `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
