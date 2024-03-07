@@ -202,7 +202,7 @@ const ticketSummary = async (req, res) => {
             // Group conversations by date and combine the body_text
             let groupedConversationsByDate = {};
 
-            console.log(`ticket conversations ${ticket.conversations}`);
+            //console.log(`ticket conversations ${ticket.conversations}`);
             if (ticket.conversations && ticket.conversations.length > 0) {
                 for (let conversation of ticket.conversations) {
                     //console.log(`conversation ${conversation}`)
@@ -231,7 +231,7 @@ const ticketSummary = async (req, res) => {
                 // Convert the groupedConversationsByDate object into an array
                 ticket.conversations = Object.values(groupedConversationsByDate);
 
-                console.log(`Ticket Number: ${ticket.id}`);
+                //console.log(`Ticket Number: ${ticket.id}`);
                 // Request to OpenAI's Chat Model API
                 for (let conversation of ticket.conversations) {
                     const prompt = `You are a consultant reviewing your replies to your tickets. You need to use this information to write what you did on the ticket. You can ignore the niceties. You do not need to mention the ticket number in the summary. Your summary should be less that 200 characters (counting spaces) and you should use bullet points. Answer using markdown code.\n\nBeginning of message: ${conversation.body_text}`;
