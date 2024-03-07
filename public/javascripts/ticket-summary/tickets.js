@@ -56,7 +56,7 @@ const ticketSummary = async (req, res) => {
         return aggregatedData;
     };
 
-    // Function to fetch paginated data
+    // Function to fetch paginated Agent data
     const fetchAgentData = async (url, params = {}) => {
         let aggregatedData = [];
         for (const agent of agentArr) {
@@ -73,6 +73,40 @@ const ticketSummary = async (req, res) => {
                 }
             );
             aggregatedData = [...aggregatedData, ...response.data];
+        }
+
+        return aggregatedData;
+    };
+
+    // Function to fetch paginated conversation data
+    const fetchConversationData = async (url, params = {}) => {
+        let page = 1;
+        let aggregatedData = [];
+
+        while (true) {
+            apiCallsCount++; // Increase the counter with each API call
+            await new Promise(resolve => setTimeout(resolve, 500)); // wait for 0.5 seconds
+            const response = await axios.get(
+                `${url}?page=${page}&per_page=${PER_PAGE}`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Basic ${Buffer.from(`${FRESHDESK_API_KEY}:X`).toString(
+                            "base64"
+                        )}`,
+                    },
+                    params,
+                }
+            );
+
+            aggregatedData = [...aggregatedData, ...response.data];
+
+            // If the number of results is less than the maximum, we've reached the last page
+            if (response.data.length < PER_PAGE) {
+                break;
+            }
+
+            page++;
         }
 
         return aggregatedData;
@@ -118,7 +152,7 @@ const ticketSummary = async (req, res) => {
         console.log(`ticket number: ${ticket.id}`);
         console.log(`ticket subject: ${ticket.subject}`)
         //if (!ticket.subject.includes('Case') && !ticket.subject.includes('has been created')) {
-        const conversations = await fetchPaginatedData(
+        const conversations = await fetchConversationData(
             `${FRESHDESK_BASE_URL}/v2/tickets/${ticket.id}/conversations`
         );
 
