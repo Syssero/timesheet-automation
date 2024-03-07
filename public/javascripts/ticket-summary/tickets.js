@@ -85,7 +85,7 @@ const ticketSummary = async (req, res) => {
 
         while (true) {
             apiCallsCount++; // Increase the counter with each API call
-            await new Promise(resolve => setTimeout(resolve, 500)); // wait for 0.5 seconds
+            await new Promise(resolve => setTimeout(resolve, 100)); // wait for 0.1 seconds
             const response = await axios.get(
                 `${url}?page=${page}&per_page=${PER_PAGE}`,
                 {
